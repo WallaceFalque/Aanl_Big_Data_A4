@@ -1,0 +1,164 @@
+PROJETO DE ANALISE DE DADOS - RESTAURANTES ZOMATO (BANGALORE)
+Processo de ciencia de dados OSEMN: Obter, Limpar, Explorar, Modelar, Interpretar
+
+==============================================================================
+ETAPA 1 - OBTER (Obtain)
+==============================================================================
+Fonte: Kaggle - Zomato Bangalore Restaurants (arquivo zomato.csv)
+Registros carregados: 51,717
+Colunas utilizadas: 13
+Colunas descartadas na leitura: url, phone, reviews_list, menu_item (texto livre/identificadores)
+
+==============================================================================
+ETAPA 2 - LIMPAR (Scrub)
+==============================================================================
+Valores ausentes antes da limpeza:
+  nota                     7,775 (15.0%)
+  bairro                      21 (0.0%)
+  tipo_restaurante           227 (0.4%)
+  pratos_curtidos         28,078 (54.3%)
+  culinarias                  45 (0.1%)
+  custo_dois                 346 (0.7%)
+Removidos por ausencia de bairro/tipo/culinaria/custo: 569
+Registros apos limpeza (com listagens repetidas): 51,148
+Restaurantes unicos (nome + endereco): 12,382
+Restaurantes sem nota (NEW ou '-'): 3,134
+Outliers de custo (IQR, acima de 1125): 724 restaurantes (mantidos: representam o segmento premium)
+Base limpa exportada: dados/zomato_limpo.csv
+
+==============================================================================
+ETAPA 3 - EXPLORAR (Explore)
+==============================================================================
+Estatisticas descritivas (restaurantes unicos):
+                  count    mean     std   min    25%    50%    75%      max
+nota             9248.0    3.63    0.43   1.8    3.3    3.7    3.9      4.9
+votos           12382.0  181.72  594.15   0.0    0.0   24.0  121.0  16345.0
+custo_dois      12382.0  487.57  391.56  40.0  250.0  400.0  600.0   6000.0
+qtd_culinarias  12382.0    2.31    1.20   1.0    1.0    2.0    3.0      8.0
+Assimetria da nota: -0.21 | Assimetria do custo: 3.44 | Assimetria dos votos: 10.27
+  [grafico] graficos/01_distribuicao_notas.png
+  [grafico] graficos/02_distribuicao_custo.png
+  [grafico] graficos/03_servicos_oferecidos.png
+Oferecem pedido online: 53.1% | Oferecem reserva de mesa: 7.7%
+  [grafico] graficos/04_top_bairros.png
+Bairro com mais restaurantes: Whitefield (872)
+  [grafico] graficos/05_top_tipos.png
+Tipo mais comum: Quick Bites (41.2% dos restaurantes)
+  [grafico] graficos/06_top_culinarias.png
+Culinaria mais oferecida: North Indian (40.3% dos restaurantes)
+  [grafico] graficos/07_top_redes.png
+Maior rede: Cafe Coffee Day (54 unidades)
+  [grafico] graficos/08_top_pratos.png
+  [grafico] graficos/09_nota_por_servico.png
+Nota media com pedido online: 3.65 | sem: 3.59
+Nota media com reserva de mesa: 4.11 | sem: 3.57
+  [grafico] graficos/10_custo_vs_nota.png
+  [grafico] graficos/11_votos_vs_nota.png
+  [grafico] graficos/12_nota_por_categoria.png
+  [grafico] graficos/13_custo_por_categoria.png
+Resumo por categoria de listagem:
+                    nota_media  custo_medio    qtd
+categoria_listagem                                
+Pubs and bars             4.02      1336.71    632
+Drinks & nightlife        4.02      1454.78   1045
+Buffet                    3.98      1316.63    848
+Cafes                     3.87       646.43   1511
+Desserts                  3.78       409.11   2709
+Dine-out                  3.68       655.40  14066
+Delivery                  3.66       495.49  20452
+  [grafico] graficos/14_melhores_bairros.png
+  [grafico] graficos/15_bairros_mais_caros.png
+Bairro com melhor nota media: Lavelle Road (4.07)
+Bairro mais caro: Lavelle Road (INR 1323)
+  [grafico] graficos/16_nota_por_faixa_preco.png
+  [grafico] graficos/17_mapa_tipo_faixa.png
+  [grafico] graficos/18_matriz_correlacao.png
+Correlacao com a nota:
+votos_log         0.587
+reserva_mesa      0.376
+custo_dois        0.328
+qtd_culinarias    0.142
+pedido_online     0.066
+
+==============================================================================
+ETAPA 4 - MODELAR (Model)
+==============================================================================
+Base de modelagem: 9,248 restaurantes unicos com nota
+
+-- 4.1 Clusterizacao (K-Means) --
+  k=2  inercia=30,179  silhueta=0.531
+  k=3  inercia=21,432  silhueta=0.389
+  k=4  inercia=16,578  silhueta=0.360
+  k=5  inercia=14,288  silhueta=0.372
+  k=6  inercia=12,481  silhueta=0.377
+  k=7  inercia=11,069  silhueta=0.375
+  k=8  inercia=10,139  silhueta=0.340
+  [grafico] graficos/19_escolha_k.png
+k escolhido: 3 (equilibrio entre cotovelo, silhueta e interpretabilidade de negocio)
+Perfil dos clusters:
+         restaurantes  nota_media  custo_medio  votos_medianos  pedido_online  reserva_mesa                          segmento
+cluster                                                                                                                      
+1                5181        3.61       436.33            62.0            1.0          0.00     Populares com delivery online
+0                3059        3.50       441.49            21.0            0.0          0.00  Tradicionais sem delivery online
+2                1008        4.13      1344.84           592.0            0.5          0.91               Premium com reserva
+  [grafico] graficos/20_clusters_pca.png
+  [grafico] graficos/21_perfil_clusters.png
+
+-- 4.2 Classificacao: restaurante bem avaliado (nota >= 4.0) --
+Proporcao de bem avaliados: 22.8%
+                     acuracia  precisao  recall     f1    auc
+modelo                                                       
+Regressao Logistica     0.830     0.592   0.816  0.686  0.915
+Arvore de Decisao       0.813     0.564   0.799  0.661  0.889
+Random Forest           0.853     0.637   0.822  0.717  0.921
+Melhor modelo (F1): Random Forest
+  [grafico] graficos/22_curva_roc.png
+  [grafico] graficos/23_matriz_confusao.png
+  [grafico] graficos/24_importancia_classificacao.png
+Variaveis mais importantes (classificacao):
+votos_log              0.519
+custo_dois             0.116
+reserva_mesa           0.075
+qtd_culinarias         0.041
+tipo_Quick Bites       0.026
+pedido_online          0.015
+tipo_Casual Dining     0.014
+tipo_Dessert Parlor    0.011
+
+-- 4.3 Regressao: previsao da nota do restaurante --
+                    MAE   RMSE     R2
+modelo                               
+Regressao Linear  0.236  0.324  0.421
+Random Forest     0.232  0.318  0.440
+Baseline (media)  0.343  0.426 -0.000
+  [grafico] graficos/25_real_vs_previsto.png
+  [grafico] graficos/26_residuos_regressao.png
+  [grafico] graficos/27_importancia_regressao.png
+Coeficientes da regressao linear (variaveis principais):
+pedido_online    -0.0129
+reserva_mesa      0.1889
+votos_log         0.1414
+custo_dois        0.0001
+qtd_culinarias   -0.0031
+
+==============================================================================
+ETAPA 5 - INTERPRETAR (iNterpret) - Relatorio gerencial
+==============================================================================
+Principais achados:
+1. Mercado: 12,382 restaurantes unicos em Bangalore; a nota media e 3.63 e a mediana de custo para dois e INR 400.
+2. Concentracao: os 5 maiores bairros concentram 29.8% dos restaurantes (lider: Whitefield), indicando alta concorrencia nessas regioes.
+3. Reserva de mesa: quem oferece tem nota media 4.11 contra 3.57; o servico esta associado a experiencias mais completas (e mais caras).
+4. Pedido online: nota media 3.65 com o servico vs 3.59 sem; 53% dos restaurantes ja vendem online.
+5. Preco x qualidade: correlacao custo-nota de 0.33 (moderada); preco alto ajuda, mas nao garante boa avaliacao.
+6. Popularidade: correlacao entre log(votos) e nota de 0.59; engajamento do cliente e o sinal mais forte de qualidade percebida.
+7. Segmentacao: o K-Means encontrou 3 perfis: Populares com delivery online (5,181 rest., nota 3.61, INR 436); Tradicionais sem delivery online (3,059 rest., nota 3.50, INR 441); Premium com reserva (1,008 rest., nota 4.13, INR 1345).
+8. Classificacao: o melhor modelo (Random Forest) identifica restaurantes com nota >= 4.0 com F1 = 0.717 e AUC = 0.921. Variavel mais relevante: votos_log.
+9. Regressao: o melhor modelo (Random Forest) preve a nota com MAE = 0.232 e R2 = 0.440, contra MAE = 0.343 do baseline pela media.
+
+Recomendacoes para tomada de decisao:
+- Priorizar estrategias de engajamento (pedir avaliacoes, programas de fidelidade): votos sao o principal preditor de nota.
+- Novos negocios devem evitar bairros saturados ou entrar neles com diferencial claro de culinaria/preco.
+- Oferecer reserva de mesa em restaurantes de ticket medio/alto, onde o servico se associa a notas maiores.
+- Manter presenca no delivery online: e padrao de mercado e o publico ja espera o canal.
+- Usar o modelo de classificacao para triagem de parceiros/restaurantes com potencial de boa avaliacao, e os clusters para campanhas de marketing segmentadas.
+  [grafico] graficos/28_comparativo_classificacao.png

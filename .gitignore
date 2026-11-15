@@ -1,0 +1,4 @@
+dados/zomato.csv
+__pycache__/
+*.pyc
+.venv/
