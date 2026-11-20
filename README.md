@@ -15,4 +15,4 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Os gráficos são gerados em `graficos/` e os relatórios em `relatorios/`.
+A cada execução os gráficos são gerados com matplotlib, um por arquivo, na pasta `imagens/` (as imagens da execução anterior são apagadas). Os relatórios ficam em `relatorios/`.
